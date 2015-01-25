@@ -25,6 +25,8 @@ public:
 	Renderer(TWindowPtr window);
 	~Renderer();
 	
+	void setFrustum(double fieldOfView, double aspect, double near, double far);
+	
 	void setShader(TShaderFunc func) { mShader = func; }
 	void setViewport(int32_t x, int32_t y, int32_t width, int32_t height)
 	{

@@ -27,7 +27,8 @@ namespace math
 	double sign(const Vector2d& p0, const Vector2d& p1, const Vector2d& p2);
 	bool pointIsInsideScreenTriangle(const Triangle3d& tri, const Vector2d& pt);
 	
-	void transform(Triangle3d& out, const Triangle3d& in, const Matrix4d& transform);
+	Vector3d transform(const Matrix4d& transform, const Vector3d& pt);
+	void transform(Triangle3d& out, const Matrix4d& transform, const Triangle3d& in);
 }
 
 #endif

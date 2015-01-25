@@ -35,7 +35,7 @@ int main(int argc, char** argv)
 		
 		rotation = rotationStep * rotation;
 		transform = translate * rotation;
-		math::transform(globalTri, originalTri, transform);
+		math::transform(globalTri, transform, originalTri);
 	
 		renderer.renderTriangle(globalTri);
 		

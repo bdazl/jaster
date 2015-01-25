@@ -24,16 +24,26 @@ Renderer::Renderer(TWindowPtr window) :
 	mDepthNear(0.0),
 	mDepthFar(1.0)
 {
-	double halfWidth = mWindow->getWidth() / 2.0;
-	double halfHeight = mWindow->getHeight() / 2.0;
-	mProjection = Matrix4d::createFrustum(-halfWidth,
-										   halfWidth,
-										   halfHeight,
-										  -halfHeight, xcNear, xcFar);
+	setFrustum(DEG2RAD(45), mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
 }
 
 Renderer::~Renderer()
 {
+}
+
+void Renderer::setFrustum(double fieldOfView, double aspect, double near, double far)
+{
+	double f = 1.0 / tan(fieldOfView/2.0);
+	
+	mProjection.identity();
+	
+	mProjection.at(0, 0) = f / aspect;
+	mProjection.at(1, 1) = f;
+	
+	mProjection.at(2, 2) = (far + near) / (near - far);
+	mProjection.at(2, 3) = -1;
+	mProjection.at(3, 2) = (2.0 * far * near) / (near - far);
+	mProjection.at(3, 3) = 0.0;
 }
 
 void Renderer::renderTriangle(const Triangle3d& triangle)
