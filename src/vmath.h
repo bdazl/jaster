@@ -967,6 +967,11 @@ public:
 	{
 		return Vector3<T>(-x, -y, -z);
 	}
+	
+	Vector2<T> xy() const
+	{
+		return Vector2<T>(x, y);
+	}
 
 	//-------------[ size operations ]---------------------------
 	/**
