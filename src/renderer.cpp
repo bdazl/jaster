@@ -69,8 +69,8 @@ void Renderer::projectToScreen(Triangle3d& screenTri, const Triangle3d& triangle
 
 void Renderer::clipToScreenSpace(Vector3d& screen, const Vector4d& pt)
 {
-	double halfWidth = mWindow->getWidth() / 2.0;
-	double halfHeight = mWindow->getHeight() / 2.0;
+	double halfWidth = mVWidth / 2.0;
+	double halfHeight = mVHeight / 2.0;
 	double fn = (mDepthFar - mDepthNear) / 2.0;
 	double nf = (mDepthNear - mDepthFar) / 2.0;
 	
