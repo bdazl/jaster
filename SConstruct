@@ -1,5 +1,6 @@
 program = 'jaster'
-sourceFiles = Glob('src/*.cpp')
+sources = Glob('src/*.cpp')
+sources = sources + Glob('src/math/*.cpp')
 ccflags = '-g -std=c++0x'
 
 sdlConfig = 'sdl-config --cflags --libs'
@@ -7,4 +8,4 @@ sdlConfig = 'sdl-config --cflags --libs'
 env = Environment(CCFLAGS = ccflags)
 env.ParseConfig(sdlConfig);
 
-env.Program(target = program, source = sourceFiles)
+env.Program(target = program, source = sources)

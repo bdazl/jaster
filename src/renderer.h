@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <memory>
 
-#include "vmath.h"
-#include "common.h"
+#include "math/vmath.h"
+#include "math/common.h"
 
 class Window;
 
