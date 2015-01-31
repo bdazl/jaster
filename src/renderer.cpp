@@ -24,7 +24,7 @@ Renderer::Renderer(TWindowPtr window) :
 	mDepthNear(0.0),
 	mDepthFar(1.0)
 {
-	setFrustum(45, mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
+	setFrustum(90, mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
 }
 
 Renderer::~Renderer()
@@ -47,11 +47,6 @@ void Renderer::renderTriangle(const Triangle3d& triangle)
 	
 	Triangle3d screenTri;
 	projectToScreen(screenTri, triangle);
-	
-	if (!isInsideBoundries(screenTri))
-	{
-		return;
-	}
 	
 	// TODO: Check if facing towards us
 	
@@ -116,9 +111,9 @@ void Renderer::getRasterRegion(Box2i& region, const Triangle3d& screenTri)
 void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Triangle3d& triangle)
 {
 	const int minY = std::max(region.p0.y, 0);
-	const int endY = std::min(region.p1.y + 1, mWindow->getHeight());
+	const int endY = std::min(region.p1.y, mWindow->getHeight()) + 1;
 	const int minX = std::max(region.p0.x, 0);
-	const int endX = std::min(region.p1.x + 1, mWindow->getHeight());
+	const int endX = std::min(region.p1.x, mWindow->getWidth()) + 1;
 	
 	ShaderInput shaderInput;
 	
