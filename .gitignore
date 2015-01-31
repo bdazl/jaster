@@ -1,4 +1,4 @@
 .sconsign.dblite
 *.o
 jaster
-src/.DS_Store
+*.DS_Store
