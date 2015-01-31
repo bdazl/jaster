@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "Window.h"
+#include "math/plane.h"
 #include <algorithm>
 
 namespace 
@@ -43,12 +44,15 @@ void Renderer::setFrustum(double fovY, double aspect, double near, double far)
 
 void Renderer::renderTriangle(const Triangle3d& triangle)
 {
-	// TODO: Clip to frustum
+	Plane3d triPlane(triangle.p0, triangle.p1, triangle.p2);
+	if (triPlane.signedDistance(Vector3d(0.0, 0.0, 0.0)) < 0)
+	{
+		// Backface culling
+		return;
+	}
 	
 	Triangle3d screenTri;
 	projectToScreen(screenTri, triangle);
-	
-	// TODO: Check if facing towards us
 	
 	Box2i region;
 	getRasterRegion(region, screenTri);
@@ -60,6 +64,8 @@ void Renderer::projectToScreen(Triangle3d& screenTri, const Triangle3d& triangle
 	Vector4d clip0 = mProjection * Vector4d(triangle.p0, 1.0);
 	Vector4d clip1 = mProjection * Vector4d(triangle.p1, 1.0);
 	Vector4d clip2 = mProjection * Vector4d(triangle.p2, 1.0);
+	
+	// TODO:: Clip to [-1.0, 1.0];
 	
 	// The coords are still homogeneous and needs to be mapped to screen space.
 	clipToScreenSpace(screenTri.p0, clip0);
