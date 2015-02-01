@@ -5,8 +5,8 @@
 
 namespace 
 {
-	const double xcNear = 0.12;
-	const double xcFar = 100.0;
+	const double xcNear = 1.0;
+	const double xcFar = 1000.0;
 	
 	uint32_t standardShader(ShaderInput& input)
 	{
@@ -25,7 +25,7 @@ Renderer::Renderer(TWindowPtr window) :
 	mDepthNear(0.0),
 	mDepthFar(1.0)
 {
-	setFrustum(90, mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
+	setFrustum(2.0 * atan(mWindow->getHeight() / 2.0 / xcNear), mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
 }
 
 Renderer::~Renderer()
@@ -36,7 +36,7 @@ void Renderer::setFrustum(double fovY, double aspect, double near, double far)
 {
 	double w, h;
 	
-	h = tan( fovY / 360 * M_PI ) * near;
+	h = tan( fovY / 360.0 * M_PI ) * near;
 	w = h * aspect;
 	
 	mProjection = Matrix4d::createFrustum(-w, w, -h, h, near, far);
@@ -45,7 +45,7 @@ void Renderer::setFrustum(double fovY, double aspect, double near, double far)
 void Renderer::renderTriangle(const Triangle3d& triangle)
 {
 	Plane3d triPlane(triangle.p0, triangle.p1, triangle.p2);
-	if (triPlane.signedDistance(Vector3d(0.0, 0.0, 0.0)) < 0)
+	if (triPlane.signedDistance(Vector3d(0.0, 0.0, 0.0)) < 0.0)
 	{
 		// Backface culling
 		return;
@@ -117,9 +117,9 @@ void Renderer::getRasterRegion(Box2i& region, const Triangle3d& screenTri)
 void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Triangle3d& triangle)
 {
 	const int minY = std::max(region.p0.y, 0);
-	const int endY = std::min(region.p1.y, mWindow->getHeight()) + 1;
+	const int endY = std::min(region.p1.y + 1, mWindow->getHeight());
 	const int minX = std::max(region.p0.x, 0);
-	const int endX = std::min(region.p1.x, mWindow->getWidth()) + 1;
+	const int endX = std::min(region.p1.x + 1, mWindow->getWidth());
 	
 	ShaderInput shaderInput;
 	
