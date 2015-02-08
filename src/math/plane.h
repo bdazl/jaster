@@ -24,7 +24,7 @@ public:
 	T signedDistance(const TVec3& point)
 	{
 		// Since the plane is always kept in hessian normal form.
-		return mNormal.dotProduct(point - mPoint);
+		return mNormal.dotProduct(point) + mD;
 	}
 	
 private:
