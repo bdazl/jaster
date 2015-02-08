@@ -10,7 +10,7 @@ namespace
 	
 	uint32_t standardShader(ShaderInput& input)
 	{
-		return 0xFF0000;
+		return ((uint32_t)(0xFFFF * (1.0 - input.screenCoord.z))) << 8;
 	}
 }
 
@@ -123,22 +123,59 @@ void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Tr
 	
 	ShaderInput shaderInput;
 	
+	// For barycentric calculations
+	double x01 = screenTri.p0.x - screenTri.p1.x;
+	double x02 = screenTri.p0.x - screenTri.p2.x;
+	double x10 = screenTri.p1.x - screenTri.p0.x;
+	double x21 = screenTri.p2.x - screenTri.p1.x;
+	
+	double y01 = screenTri.p0.y - screenTri.p1.y;
+	double y02 = screenTri.p0.y - screenTri.p2.y;
+	double y10 = screenTri.p1.y - screenTri.p0.y;
+	double y21 = screenTri.p2.y - screenTri.p1.y;
+	
+	double denom = x21 * y01 - x01 * y21;
+	
 	for (int y = minY; y < endY; y++)
 	{
 		for (int x = minX; x < endX; x++)
 		{
-			// TODO: Interpolate depth for this pixel.
-			double depth = screenTri.p0.z;
+			// Add a half, to adjust for the center of the pixel.
+			// Screen coordinate (0, 0) is actually (0.5, 0.5)
+			Vector2d coord((double)x + 0.5, (double)y + 0.5);
 			
-			Vector2d coord((double)x, (double)y);
-			if (math::pointIsInsideScreenTriangle(screenTri, coord))
+			// Barycentric coordinates
+			Vector3d bc;
+			bc.x = (x21 * (coord.y - screenTri.p1.y) - (coord.x - screenTri.p1.x) * y21) / denom;
+			if (bc.x < 0.0 || bc.x > 1.0)
 			{
-				// TODO: Depth test
-				// TODO: Project 3d-coord
-				// TODO: Texture coord
-				shaderInput.screenCoord = Vector3d(coord.x, coord.y, depth);
-				rasterPixel(shaderInput);
+				// Not inside triangle
+				continue;
 			}
+			
+			bc.y = (x02 * (coord.y - screenTri.p2.y) - (coord.x - screenTri.p2.x) * y02) / denom;
+			if (bc.y < 0.0 || bc.y > 1.0)
+			{
+				// Not inside triangle
+				continue;
+			} 
+			
+			bc.z = 1.0 - bc.x - bc.y;
+			if (bc.z < 0.0 || bc.z > 1.0)
+			{
+				// Not inside triangle
+				continue;
+			} 
+			
+			// Interpolate depth from barycentric coods.
+			double depth = bc.x * screenTri.p0.z + 
+						   bc.y * screenTri.p1.z +
+						   bc.z * screenTri.p2.z;
+			
+			// TODO: Project 3d-coord
+			// TODO: Texture coord
+			shaderInput.screenCoord = Vector3d(coord.x, coord.y, depth);
+			rasterPixel(shaderInput);
 		}
 	}
 }
