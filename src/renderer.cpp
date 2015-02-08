@@ -10,7 +10,8 @@ namespace
 	
 	uint32_t standardShader(ShaderInput& input)
 	{
-		return ((uint32_t)(0xFFFF * (1.0 - input.screenCoord.z))) << 8;
+		uint16_t gray = ((uint16_t)(0xFF * (1.0 + input.screenCoord.z)));
+		return gray << 16 | gray << 8 | gray;
 	}
 }
 
@@ -20,12 +21,23 @@ Renderer::Renderer(TWindowPtr window) :
 	mProjection(),
 	mVX(0),
 	mVY(0),
-	mVWidth(mWindow->getWidth()),
-	mVHeight(mWindow->getHeight()),
+	mVWidth(window->getWidth()),
+	mVHeight(window->getHeight()),
 	mDepthNear(0.0),
-	mDepthFar(1.0)
+	mDepthFar(1.0),
+	mDepthCheck(true),
+	mDepthBuffer()
 {
 	setFrustum(2.0 * atan(mWindow->getHeight() / 2.0 / xcNear), mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
+	
+	for (int y = 0; y < window->getHeight(); y++)
+	{
+		mDepthBuffer.push_back(std::vector<double>());
+		for (int x = 0; x < window->getWidth(); x++)
+		{
+			mDepthBuffer[y].push_back(-mDepthFar);
+		}
+	}
 }
 
 Renderer::~Renderer()
@@ -40,6 +52,15 @@ void Renderer::setFrustum(double fovY, double aspect, double near, double far)
 	w = h * aspect;
 	
 	mProjection = Matrix4d::createFrustum(-w, w, -h, h, near, far);
+}
+
+void Renderer::clearDepthBuffer()
+{
+	double clr = -mDepthFar;
+	for (auto& it : mDepthBuffer)
+	{
+		std::for_each(it.begin(), it.end(), [clr](double& d){ d = clr; });
+	}
 }
 
 void Renderer::renderTriangle(const Triangle3d& triangle)
@@ -171,6 +192,15 @@ void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Tr
 			double depth = bc.x * screenTri.p0.z + 
 						   bc.y * screenTri.p1.z +
 						   bc.z * screenTri.p2.z;
+			
+			// Depth check
+			if (mDepthCheck && depth < mDepthBuffer[y][x])
+			{
+				continue;
+			}
+			
+			// Fill depth buffer
+			mDepthBuffer[y][x] = depth;
 			
 			// TODO: Project 3d-coord
 			// TODO: Texture coord

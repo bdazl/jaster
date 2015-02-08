@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "math/vmath.h"
 #include "math/common.h"
@@ -19,8 +20,8 @@ struct ShaderInput
 class Renderer
 {
 public:
-	typedef std::shared_ptr<Window> TWindowPtr;
-	typedef std::function<uint32_t(ShaderInput&)> TShaderFunc;
+	using TWindowPtr = std::shared_ptr<Window>;
+	using TShaderFunc = std::function<uint32_t(ShaderInput&)>;
 	
 	Renderer(TWindowPtr window);
 	~Renderer();
@@ -38,9 +39,18 @@ public:
 		mDepthNear = near; mDepthFar = far;
 	}
 	
+	void setDepthCheck(bool depthCheck)
+	{
+		mDepthCheck = depthCheck;
+	}
+	
 	void renderTriangle(const Triangle3d& triangle);
 	
+	void clearDepthBuffer();
+	
 private:
+	using TDepthBuffer = std::vector<std::vector<double>>;
+	
 	TWindowPtr mWindow;
 	TShaderFunc mShader;
 	Matrix4f mProjection;
@@ -50,6 +60,8 @@ private:
 	
 	// Depth range (initally [0, 1])
 	double mDepthNear, mDepthFar;
+	bool mDepthCheck;
+	TDepthBuffer mDepthBuffer;
 	
 	void projectToScreen(Triangle3d& screenTri, const Triangle3d& triangle);
 	void clipToScreenSpace(Vector3d& screen, const Vector4d& pt);

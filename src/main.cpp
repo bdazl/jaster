@@ -49,7 +49,7 @@ namespace {
 								  (double)shape.mesh.positions[3*idx+2]);
 								  
 				idx = shape.mesh.indices[3*i+2];
-				tri.p1 = Vector3d((double)shape.mesh.positions[3*idx+0],
+				tri.p2 = Vector3d((double)shape.mesh.positions[3*idx+0],
 				  				  (double)shape.mesh.positions[3*idx+1],
 				  				  (double)shape.mesh.positions[3*idx+2]);
 								  
@@ -84,8 +84,8 @@ int main(int argc, char** argv)
 	xWindow = std::make_shared<Window>(xcWinWidth, xcWinHeight);
 	xRenderer = std::make_shared<Renderer>(xWindow);
 	
-	Matrix4d scale = Matrix4d::createScale(0.5, 0.5, 0.5);
-	Matrix4d translate = Matrix4d::createTranslation(0.0, 0.0, -5.0);
+	Matrix4d scale = Matrix4d::createScale(10, 10, 10);
+	Matrix4d translate = Matrix4d::createTranslation(0.0, 0.0, -100.0);
 	Matrix4d rotationStep = Matrix4d::createRotationAroundAxis(0.0, 180.0 / 25, 0.0);
 	Matrix4d rotation, transform;
 	
@@ -98,6 +98,7 @@ int main(int argc, char** argv)
 		{
 			//std::cout << "DBG: Rendering..." << std::endl;
 			xWindow->clear(0x000AFF);
+			xRenderer->clearDepthBuffer();
 		
 			rotation = rotationStep * rotation;
 			transform = translate * rotation * scale;
