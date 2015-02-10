@@ -13,6 +13,20 @@ namespace {
 	
 	std::vector<Triangle3d> dragonMesh;
 	
+	Vector3d unmarshalVector(int idx, const std::vector<float>& data)
+	{
+		return Vector3d((double)data[3*idx+0],
+						(double)data[3*idx+1],
+						(double)data[3*idx+2]);
+	}
+	
+	Vector3d generateNormal(const Vector3d& p0, const Vector3d& p1, const Vector3d& p2)
+	{
+		Vector3d vec = (p1-p0).crossProduct(p2-p1);
+		vec.normalize();
+		return vec;
+	}
+	
 	void loadObjFile(std::vector<Triangle3d>& mesh, const std::string& file)
 	{
 		std::cout << "Loading \"" << file << "..." << std::endl;
@@ -39,19 +53,21 @@ namespace {
 			for (int i = 0; i < shape.mesh.indices.size() / 3; i++)
 			{
 				int idx = shape.mesh.indices[3*i+0];
-				tri.p0 = Vector3d((double)shape.mesh.positions[3*idx+0],
-								  (double)shape.mesh.positions[3*idx+1],
-								  (double)shape.mesh.positions[3*idx+2]);
+				tri.p0 = unmarshalVector(idx, shape.mesh.positions);
+				tri.n0 = unmarshalVector(idx, shape.mesh.normals);
 			
 				idx = shape.mesh.indices[3*i+1];
-				tri.p1 = Vector3d((double)shape.mesh.positions[3*idx+0],
-								  (double)shape.mesh.positions[3*idx+1],
-								  (double)shape.mesh.positions[3*idx+2]);
+				tri.p1 = unmarshalVector(idx, shape.mesh.positions);
+				tri.n1 = unmarshalVector(idx, shape.mesh.normals);
 								  
 				idx = shape.mesh.indices[3*i+2];
-				tri.p2 = Vector3d((double)shape.mesh.positions[3*idx+0],
-				  				  (double)shape.mesh.positions[3*idx+1],
-				  				  (double)shape.mesh.positions[3*idx+2]);
+				tri.p2 = unmarshalVector(idx, shape.mesh.positions);
+				tri.n2 = unmarshalVector(idx, shape.mesh.normals);
+				
+				if (tri.n0 == Vector3d())
+				{
+					tri.n0 = tri.n1 = tri.n2 = generateNormal(tri.p0, tri.p1, tri.p2);
+				}
 								  
 				mesh.push_back(tri);
 			}

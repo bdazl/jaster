@@ -10,11 +10,39 @@
 
 class Window;
 
+struct Light
+{
+	Vector3d ambient;
+	Vector3d diffuse;
+	Vector3d specular;
+	
+	Vector3d pos;
+	
+	// Constant, linear and quadratic attenuation parameters.
+	//double k0, k1, k2;
+};
+
+struct LightContext
+{
+	std::vector<Light> lights;
+};
+
 struct ShaderInput
 {
+	// 3d point in eye space
 	Vector3d vert;
+	
+	// Normal in eye space
+	Vector3d normal;
+	
+	// Texture coordinate
 	Vector2i texCoord;
-	Vector3d screenCoord; // Including depth value
+	
+	// Screen coordinate (pixel on screen, including depth value)
+	Vector3d screenCoord;
+	
+	// The light context
+	std::shared_ptr<LightContext> lightContext;
 };
 
 class Renderer
@@ -22,6 +50,7 @@ class Renderer
 public:
 	using TWindowPtr = std::shared_ptr<Window>;
 	using TShaderFunc = std::function<uint32_t(ShaderInput&)>;
+	using TLightContextPtr = std::shared_ptr<LightContext>;
 	
 	Renderer(TWindowPtr window);
 	~Renderer();
@@ -62,6 +91,9 @@ private:
 	double mDepthNear, mDepthFar;
 	bool mDepthCheck;
 	TDepthBuffer mDepthBuffer;
+	
+	// Light context
+	TLightContextPtr mLightContext;
 	
 	void projectToScreen(Triangle3d& screenTri, const Triangle3d& triangle);
 	void clipToScreenSpace(Vector3d& screen, const Vector4d& pt);

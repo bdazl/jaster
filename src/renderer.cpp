@@ -8,10 +8,46 @@ namespace
 	const double xcNear = 1.0;
 	const double xcFar = 1000.0;
 	
+	uint32_t colorVecToUint(const Vector3d& color)
+	{
+		return uint32_t(color.r * 0xFF) << 16 | 
+			   uint32_t(color.g * 0xFF) << 8 | 
+			   uint32_t(color.b * 0xFF); 
+	}
+	
 	uint32_t standardShader(ShaderInput& input)
 	{
-		uint16_t gray = ((uint16_t)(0xFF * (1.0 + input.screenCoord.z)));
-		return gray << 16 | gray << 8 | gray;
+		// double dist = 1.0 + input.screenCoord.z;
+		// TODO:: material property
+		const double shiny = 0.2;
+		
+		Vector3d color(0.0, 0.0, 0.0);
+		for (const auto& light : input.lightContext->lights)
+		{
+			Vector3d dir = input.vert - light.pos;
+			dir.normalize();
+			
+			Vector3d toEye = -input.vert;
+			toEye.normalize();
+			
+			Vector3d reflect = math::reflect(dir, input.normal);
+			reflect.normalize();
+			
+			// Diffuse term
+			Vector3d diff = light.diffuse * std::max(dir.dotProduct(input.normal), 0.0);
+			math::clamp(diff, 0.0, 1.0);
+			
+			// Specular term
+			double f = std::max(reflect.dotProduct(toEye), 0.0);
+			Vector3d spec = light.specular * std::pow(f, shiny);
+			math::clamp(spec, 0.0, 1.0);
+			
+			color += light.ambient + diff + spec;
+		}
+		
+		math::clamp(color, 0.0, 1.0);
+		
+		return colorVecToUint(color);
 	}
 }
 
@@ -38,6 +74,19 @@ Renderer::Renderer(TWindowPtr window) :
 			mDepthBuffer[y].push_back(-mDepthFar);
 		}
 	}
+	
+	// TODO:: LET CLIENTS HANDLE THIS
+	mLightContext = std::make_shared<LightContext>();
+	
+	Light l;
+	l.pos = Vector3d(-100.0, 100.0, -50.0);
+	// l.dir = Vector3d(0.0, -1.0, 0.0);
+	
+	l.ambient = Vector3d(0.05, 0.05, 0.05);
+	l.diffuse = Vector3d(0.4, 0.4, 0.4);
+	l.specular = Vector3d(0.4, 0.2, 0.2);
+	
+	mLightContext->lights.push_back(l);
 }
 
 Renderer::~Renderer()
@@ -135,6 +184,12 @@ void Renderer::getRasterRegion(Box2i& region, const Triangle3d& screenTri)
 	region.p1.y = (int)std::ceil(std::max(screenTri.p0.y, std::max(screenTri.p1.y, screenTri.p2.y)));
 }
 
+template<typename T>
+static inline T barycentricWeight(const Vector3d& bc, const T& c0, const T& c1, const T& c2)
+{
+	return c0 * bc.x + c1 * bc.y + c2 * bc.z;
+}
+
 void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Triangle3d& triangle)
 {
 	const int minY = std::max(region.p0.y, 0);
@@ -143,6 +198,7 @@ void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Tr
 	const int endX = std::min(region.p1.x + 1, mWindow->getWidth());
 	
 	ShaderInput shaderInput;
+	shaderInput.lightContext = mLightContext;
 	
 	// For barycentric calculations
 	double x01 = screenTri.p0.x - screenTri.p1.x;
@@ -189,9 +245,7 @@ void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Tr
 			} 
 			
 			// Interpolate depth from barycentric coods.
-			double depth = bc.x * screenTri.p0.z + 
-						   bc.y * screenTri.p1.z +
-						   bc.z * screenTri.p2.z;
+			double depth = barycentricWeight(bc, screenTri.p0.z, screenTri.p1.z, screenTri.p2.z);
 			
 			// Depth check
 			if (mDepthCheck && depth < mDepthBuffer[y][x])
@@ -205,6 +259,9 @@ void Renderer::raster(const Box2i& region, const Triangle3d& screenTri, const Tr
 			// TODO: Project 3d-coord
 			// TODO: Texture coord
 			shaderInput.screenCoord = Vector3d(coord.x, coord.y, depth);
+			shaderInput.vert = barycentricWeight(bc, triangle.p0, triangle.p1, triangle.p2);
+			shaderInput.normal = barycentricWeight(bc, triangle.n0, triangle.n1, triangle.n2);
+			shaderInput.normal.normalize();
 			rasterPixel(shaderInput);
 		}
 	}
