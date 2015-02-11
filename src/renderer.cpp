@@ -24,13 +24,13 @@ namespace
 		Vector3d color(0.0, 0.0, 0.0);
 		for (const auto& light : input.lightContext->lights)
 		{
-			Vector3d dir = input.vert - light.pos;
+			Vector3d dir = light.pos - input.vert;
 			dir.normalize();
 			
 			Vector3d toEye = -input.vert;
 			toEye.normalize();
 			
-			Vector3d reflect = math::reflect(dir, input.normal);
+			Vector3d reflect = -math::reflect(dir, input.normal);
 			reflect.normalize();
 			
 			// Diffuse term
