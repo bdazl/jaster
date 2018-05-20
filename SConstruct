@@ -1,6 +1,5 @@
 program = 'jaster'
-sources = Glob('src/*.cpp')
-sources = sources + Glob('src/math/*.cpp')
+sources = Glob('src/*.cpp') + Glob('src/math/*.cpp') + Glob('src/geometry/*.cpp')
 ccflags = '-g -std=c++0x'
 
 sdlConfig = 'sdl-config --cflags --libs'

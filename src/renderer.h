@@ -7,6 +7,8 @@
 
 #include "math/vmath.h"
 #include "math/common.h"
+#include "geometry/frustum.h"
+#include "geometry/viewport.h"
 
 class Window;
 
@@ -51,44 +53,34 @@ public:
 	using TWindowPtr = std::shared_ptr<Window>;
 	using TShaderFunc = std::function<uint32_t(ShaderInput&)>;
 	using TLightContextPtr = std::shared_ptr<LightContext>;
+	using TFrustumPtr = std::shared_ptr<Frustum>;
+	using TViewportPtr = std::shared_ptr<Viewport>;
 	
 	Renderer(TWindowPtr window);
 	~Renderer();
 	
-	void setFrustum(double fovY, double aspect, double near, double far);
+	TFrustumPtr getCamera() { return mCamera; }
+	TViewportPtr getViewport() { return mViewport; }
 	
 	void setShader(TShaderFunc func) { mShader = func; }
-	void setViewport(int32_t x, int32_t y, int32_t width, int32_t height)
-	{
-		mVX = x; mVY = y; mVWidth = width; mVHeight = height;
-	}
 	
-	void setDepthRange(double near, double far)
-	{
-		mDepthNear = near; mDepthFar = far;
-	}
-	
-	void setDepthCheck(bool depthCheck)
-	{
-		mDepthCheck = depthCheck;
-	}
-	
-	void renderTriangle(const Triangle3d& triangle);
+	void setDepthCheck(bool depthCheck) { mDepthCheck = depthCheck; }
 	
 	void clearDepthBuffer();
+	
+	// Render triangle to buffers
+	void renderTriangle(const Triangle3d& triangle);
 	
 private:
 	using TDepthBuffer = std::vector<std::vector<double>>;
 	
 	TWindowPtr mWindow;
 	TShaderFunc mShader;
-	Matrix4f mProjection;
+	TFrustumPtr mCamera;
+	TViewportPtr mViewport;
 	
-	// Viewport variables
-	int32_t mVX, mVY, mVWidth, mVHeight;
 	
 	// Depth range (initally [0, 1])
-	double mDepthNear, mDepthFar;
 	bool mDepthCheck;
 	TDepthBuffer mDepthBuffer;
 	
@@ -96,7 +88,6 @@ private:
 	TLightContextPtr mLightContext;
 	
 	void projectToScreen(Triangle3d& screenTri, const Triangle3d& triangle);
-	void clipToScreenSpace(Vector3d& screen, const Vector4d& pt);
 	
 	bool isInsideBoundries(const Vector3d& pt);
 	bool isInsideBoundries(const Triangle3d& screenTri);

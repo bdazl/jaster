@@ -2351,6 +2351,7 @@ public:
 		ret.at(2,3) = -1;
 
 		ret.at(3,2) = - twoZNear * zFar * invDepth;
+		ret.at(3,3) = 0;
 
 		return ret;
 	}
@@ -3461,6 +3462,24 @@ public:
 		}
 
 		return q;
+	}
+	
+	/**
+	 * Rotates a vector by this quaternion seen as a rotation quaternion
+	 */
+	Vector3<T> rotate(const Vector3<T> &vec) const
+	{
+		Quaternion<T> ret = (*this) * Quaternion<T>(0, vec) * ~(*this);
+		return ret.v;
+	}
+	/**
+	 * Rotates a vector inverse to the rotation quaternion.
+	 * Same as: (~quat).rotate(vec);
+	 */
+	Vector3<T> inverseRotate(const Vector3<T> &vec) const
+	{
+		Quaternion<T> ret = ~(*this) * Quaternion<T>(0, vec) * (*this);
+		return ret.v;
 	}
 
 	/**

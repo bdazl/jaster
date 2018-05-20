@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "Window.h"
-#include "math/plane.h"
+#include "geometry/plane.h"
+#include "geometry/frustum.h"
 #include <algorithm>
 
 namespace 
@@ -54,24 +55,18 @@ namespace
 Renderer::Renderer(TWindowPtr window) :
 	mWindow(window),
 	mShader(standardShader),
-	mProjection(),
-	mVX(0),
-	mVY(0),
-	mVWidth(window->getWidth()),
-	mVHeight(window->getHeight()),
-	mDepthNear(0.0),
-	mDepthFar(1.0),
+	mViewport(std::make_shared<Viewport>(window->getWidth(), window->getHeight())),
 	mDepthCheck(true),
 	mDepthBuffer()
 {
-	setFrustum(2.0 * atan(mWindow->getHeight() / 2.0 / xcNear), mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
+	mCamera = std::make_shared<Frustum>(2.0 * atan(mWindow->getHeight() / 2.0 / xcNear), mWindow->getWidth() / (double)mWindow->getHeight(), xcNear, xcFar);
 	
 	for (int y = 0; y < window->getHeight(); y++)
 	{
 		mDepthBuffer.push_back(std::vector<double>());
 		for (int x = 0; x < window->getWidth(); x++)
 		{
-			mDepthBuffer[y].push_back(-mDepthFar);
+			mDepthBuffer[y].push_back(-mViewport->getDepthFar());
 		}
 	}
 	
@@ -93,19 +88,9 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::setFrustum(double fovY, double aspect, double near, double far)
-{
-	double w, h;
-	
-	h = tan( fovY / 360.0 * M_PI ) * near;
-	w = h * aspect;
-	
-	mProjection = Matrix4d::createFrustum(-w, w, -h, h, near, far);
-}
-
 void Renderer::clearDepthBuffer()
 {
-	double clr = -mDepthFar;
+	double clr = -mViewport->getDepthFar();
 	for (auto& it : mDepthBuffer)
 	{
 		std::for_each(it.begin(), it.end(), [clr](double& d){ d = clr; });
@@ -114,8 +99,8 @@ void Renderer::clearDepthBuffer()
 
 void Renderer::renderTriangle(const Triangle3d& triangle)
 {
-	Plane3d triPlane(triangle.p0, triangle.p1, triangle.p2);
-	if (triPlane.signedDistance(Vector3d(0.0, 0.0, 0.0)) < 0.0)
+	Plane triPlane(triangle.p0, triangle.p1, triangle.p2);
+	if (triPlane.signedDistance(mCamera->getTransform().getPosition()) < 0.0)
 	{
 		// Backface culling
 		return;
@@ -131,35 +116,17 @@ void Renderer::renderTriangle(const Triangle3d& triangle)
 
 void Renderer::projectToScreen(Triangle3d& screenTri, const Triangle3d& triangle)
 {
-	Vector4d clip0 = mProjection * Vector4d(triangle.p0, 1.0);
-	Vector4d clip1 = mProjection * Vector4d(triangle.p1, 1.0);
-	Vector4d clip2 = mProjection * Vector4d(triangle.p2, 1.0);
+	Vector3d p0 = mCamera->project(triangle.p0);
+	p0.y = -p0.y; // Flip sign to get top left corner = [0, 0]
+	screenTri.p0 = mCamera->ndcToViewportSpace(p0, *mViewport);
 	
-	// TODO:: Clip to [-1.0, 1.0];
+	Vector3d p1 = mCamera->project(triangle.p1);
+	p1.y = -p1.y;
+	screenTri.p1 = mCamera->ndcToViewportSpace(p1, *mViewport);
 	
-	// The coords are still homogeneous and needs to be mapped to screen space.
-	clipToScreenSpace(screenTri.p0, clip0);
-	clipToScreenSpace(screenTri.p1, clip1);
-	clipToScreenSpace(screenTri.p2, clip2);
-}
-
-void Renderer::clipToScreenSpace(Vector3d& screen, const Vector4d& pt)
-{
-	double halfWidth = mVWidth / 2.0;
-	double halfHeight = mVHeight / 2.0;
-	double fn = (mDepthFar - mDepthNear) / 2.0;
-	double nf = (mDepthNear - mDepthFar) / 2.0;
-	
-	// Normalized device coordinates
-	Vector3d ndc = pt.xyz() / pt.w;
-	
-	// Window (or screen) coordinates
-	// Viewport coordinates are (0, 0) bottom left corner
-	// But our window/buffer coordinate system starts top left
-	// Compensate for this as well.
-	screen = Vector3d(ndc.x * halfWidth + (mVX + halfWidth), 
-					  -ndc.y * halfHeight + (mVY + halfHeight),
-					  ndc.z * fn + nf);
+	Vector3d p2 = mCamera->project(triangle.p2);
+	p2.y = -p2.y;
+	screenTri.p2 = mCamera->ndcToViewportSpace(p2, *mViewport);
 }
 
 bool Renderer::isInsideBoundries(const Vector3d& pt)

@@ -3,6 +3,7 @@
 #include "window.h"
 #include "Renderer.h"
 #include "tiny_obj_loader.h"
+#include "geometry/transform.h"
 
 namespace {
 
@@ -86,11 +87,68 @@ namespace {
 			xRenderer->renderTriangle(global);
 		}
 	}
+	
+	Vector2i xKeyDir;
+
+	void handleKeyboard(const SDL_Event& event)
+	{
+		if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP)
+		{
+			return;
+		}
+		
+		double dir = event.type == SDL_KEYDOWN ? 1 : -1;
+		
+		switch( event.key.keysym.sym )
+		{
+		case SDLK_LEFT:
+			xKeyDir.x -= dir;
+			break;
+		case SDLK_RIGHT:
+			xKeyDir.x += dir;
+			break;
+		case SDLK_UP:
+			xKeyDir.y += dir;
+			break;
+		case SDLK_DOWN:
+			xKeyDir.y -= dir;
+			break;
+		default:
+			break;
+		}
+	}
+	
+	constexpr double xcSpeed = 1.0;
+	constexpr double xcRotSpeed = 2;
+	
+	void transformCamera()
+	{
+		Transform& transform = xRenderer->getCamera()->getTransform();
+		
+		if (xKeyDir.x < 0)
+		{
+			transform.rotate(Quatd::fromAxisRot(Vector3d(0.0, 1.0, 0.0), xcRotSpeed));
+		}
+		else if (xKeyDir.x > 0.0)
+		{
+			transform.rotate(Quatd::fromAxisRot(Vector3d(0.0, 1.0, 0.0), -xcRotSpeed));
+		}
+		
+		if (xKeyDir.y < 0)
+		{
+			transform.translate(transform.getAt() * xcSpeed);
+		}
+		else if (xKeyDir.y > 0)
+		{
+			transform.translate(-transform.getAt() * xcSpeed);
+		}
+	}
 
 }
 
 int main(int argc, char** argv)
 {
+	std::cout << "Loading model files..." << std::endl;
 	loadObjFile(dragonMesh, "obj/cow.obj");
 	
 	std::cout << "Initializing SDL..." << std::endl;
@@ -107,24 +165,22 @@ int main(int argc, char** argv)
 	
 	SDL_Event event;
 	bool quit = false;
-	bool changes = true;
 	while(!quit)
 	{
-		if (changes)
-		{
-			//std::cout << "DBG: Rendering..." << std::endl;
-			xWindow->clear(0x000AFF);
-			xRenderer->clearDepthBuffer();
+		//std::cout << "DBG: Rendering..." << std::endl;
+		xWindow->clear(0x000AFF);
+		xRenderer->clearDepthBuffer();
 		
-			rotation = rotationStep * rotation;
-			transform = translate * rotation * scale;
+		uint32_t currentTimeMs = SDL_GetTicks();
 		
-			renderMesh(dragonMesh, transform);
-		
-			xWindow->blit();
-			
-			//changes = false;
-		}
+		translate = Matrix4d::createTranslation(std::sin(currentTimeMs / 1000.0)*100.0, 0.0, -100.0);
+	
+		rotation = rotationStep * rotation;
+		transform = translate * rotation * scale;
+	
+		renderMesh(dragonMesh, transform);
+	
+		xWindow->blit();
 		
 		while(SDL_PollEvent(&event))
 		{
@@ -133,11 +189,17 @@ int main(int argc, char** argv)
 				quit = true;
 				break;
 			}
+			else
+			{
+				handleKeyboard(event);
+			}
 		}
+		
+		transformCamera();
 		
 		if (!quit)
 		{
-			SDL_Delay(20);
+			SDL_Delay(10);
 		}
 	}
 	
